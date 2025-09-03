@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Open Roblox</title>
+  <meta name="description" content="Convert a roblox:// deep link into a click-able global URL with graceful fallback." />
+  <style>
+    :root{color-scheme: light dark}
+    body{font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; padding:2rem; display:grid; place-items:start; gap:1.25rem}
+    .card{max-width:860px; width:100%; border:1px solid hsl(0 0% 80% / .35); border-radius:16px; padding:20px; box-shadow: 0 10px 30px hsl(0 0% 0% / .06)}
+    h1{font-size:clamp(1.2rem, 2.2vw, 1.6rem); margin:0 0 .25rem}
+    .muted{opacity:.7}
+    code,kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:.95em}
+    input[type="url"], input[type="text"]{width:100%; padding:.8rem 1rem; border-radius:12px; border:1px solid hsl(0 0% 80% / .45)}
+    button{padding:.7rem 1rem; border-radius:999px; border:1px solid transparent; cursor:pointer}
+    .primary{background:#2563eb; color:white}
+    .ghost{background:transparent; border-color:hsl(0 0% 80% / .45)}
+    .row{display:flex; gap:.6rem; flex-wrap:wrap}
+    .status{padding:.5rem .8rem; border-radius:10px; background:hsl(220 14% 95% / .6)}
+    .hidden{display:none}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+    .small{font-size:.9em}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Roblox Deep Link Launcher</h1>
+    <p class="muted small">Paste a <code>roblox://</code> link or use <code>?goto=...</code> in the URL. We attempt to open Roblox Client and fall back to the web experience if needed.</p>
+
+    <div class="row">
+      <input id="input" type="url" placeholder="roblox://" aria-label="Roblox deep link" />
+      <button id="openBtn" class="primary">Open Roblox</button>
+      <button id="copyBtn" class="ghost" title="Copy prepared global URL">Copy Global URL</button>
+    </div>
+
+    <p id="status" class="status small">Ready. Provide a <code>roblox://</code> URL.</p>
+
+    <details>
+      <summary>Example</summary>
+      <div class="small mono">-</div>
+    </details>
+  </div>
+
+  <iframe id="hiddenFrame" class="hidden" aria-hidden="true"></iframe>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const input = $('#input');
+    const status = $('#status');
+    const hiddenFrame = $('#hiddenFrame');
+
+    function getParamFromAnywhere() {
+      // Priority 1: ?goto=...
+      const sp = new URLSearchParams(location.search);
+      let raw = sp.get('goto');
+      if (raw) return decodeURIComponent(raw);
+      // Priority 2: #goto=...
+      const hash = location.hash || '';
+      const mHash = hash.match(/goto=([^&]+)/i);
+      if (mHash) return decodeURIComponent(mHash[1]);
+      // Priority 3: loose '/goto=' in the URL path
+      const href = location.href;
+      const mPath = href.match(/goto=([^#?]+)/i);
+      if (mPath) return decodeURIComponent(mPath[1]);
+      return '';
+    }
+
+    function isRobloxProtocol(u) {
+      return typeof u === 'string' && u.trim().toLowerCase().startsWith('roblox://');
+    }
+
+    function parsePlaceId(u) {
+      const m = u.match(/placeId=(\d+)/i);
+      return m ? m[1] : null;
+    }
+
+    function webFallbackUrl(u) {
+      const placeId = parsePlaceId(u);
+      if (!placeId) return null;
+      // Conservative fallback: open the public game page. Roblox site will try to launch the client if available.
+      return `https://www.roblox.com/games/${placeId}/`;
+    }
+
+    async function copyGlobalUrl(u) {
+      const base = location.origin + location.pathname;
+      const globalUrl = `${base}?goto=${encodeURIComponent(u)}`;
+      await navigator.clipboard.writeText(globalUrl);
+      setStatus('Copied global URL to clipboard. Paste it into Discord.');
+    }
+
+    function setStatus(msg) { status.textContent = msg; }
+
+    function openViaIframe(u) {
+      // Some browsers allow custom protocols via iframe; harmless if blocked
+      try { hiddenFrame.src = u; } catch {}
+    }
+
+    function openRoblox(u) {
+      setStatus('Attempting to open Roblox Client…');
+      let didHide = false;
+      const visHandler = () => { if (document.hidden) didHide = true; };
+      document.addEventListener('visibilitychange', visHandler, { once: true });
+
+      // Multiple strategies for better coverage
+      openViaIframe(u);
+      try { window.location.href = u; } catch {}
+      try { window.open(u, '_self'); } catch {}
+
+      // After a short delay, if the page is still visible, fall back to web
+      const FallbackDelay = 1500; // ms
+      setTimeout(() => {
+        document.removeEventListener('visibilitychange', visHandler, { once: true });
+        if (!didHide) {
+          const web = webFallbackUrl(u);
+          if (web) {
+            setStatus('Couldn\'t auto-open the client. Redirecting to Roblox web page…');
+            window.location.href = web;
+          } else {
+            setStatus('Couldn\'t auto-open the client. Please ensure the link contains a valid placeId=…');
+          }
+        }
+      }, FallbackDelay);
+    }
+
+    // Wire UI
+    $('#openBtn').addEventListener('click', () => {
+      const u = input.value.trim();
+      if (!isRobloxProtocol(u)) return setStatus('Please provide a valid roblox:// URL.');
+      openRoblox(u);
+    });
+
+    $('#copyBtn').addEventListener('click', () => {
+      const u = input.value.trim();
+      if (!isRobloxProtocol(u)) return setStatus('Please provide a valid roblox:// URL to build a global link.');
+      copyGlobalUrl(u).catch(() => setStatus('Copy failed. You can still share: ' + location.origin + location.pathname + '?goto=' + encodeURIComponent(u)));
+    });
+
+    // Autofill from URL param and auto-attempt
+    const auto = getParamFromAnywhere();
+    if (auto && isRobloxProtocol(auto)) {
+      input.value = auto;
+      // Auto-attempt opening after a brief tick so DOM is ready
+      setTimeout(() => openRoblox(auto), 120);
+    }
+  </script>
+</body>
+</html>
