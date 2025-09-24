@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Forwarder</title>
+  <meta name="description" content="Forwarder" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0; padding: 2rem;
+      display: grid; place-items: start;
+      background: #f9fafb; color: #111;
+    }
+    .card {
+      max-width: 600px; width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      padding: 20px;
+      background: white;
+      box-shadow: 0 8px 20px rgba(0,0,0,.08);
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 1rem }
+    .row { display: flex; gap: .8rem; flex-wrap: wrap; }
+    input, select {
+      padding: .7rem 1rem; border-radius: 12px; border: 1px solid #ccc;
+      font-size: 1rem; flex: 1;
+    }
+    button {
+      padding: .7rem 1.2rem; border-radius: 999px; border: none; cursor: pointer;
+      background: #2563eb; color: white; font-weight: 500;
+    }
+    .status { margin-top: 1rem; font-size: .9rem; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Forwarder</h1>
+    <p>Masukkan NIM dan pilih semester</p>
+    
+    <div class="row">
+      <input id="nimInput" type="text" placeholder="NIM" />
+      <select id="semesterSelect">
+        <option value="">-- Pilih Semester --</option>
+        <option value="1">Semester 1</option>
+        <option value="2">Semester 2</option>
+        <option value="3">Semester 3</option>
+        <option value="4">Semester 4</option>
+        <option value="5">Semester 5</option>
+        <option value="6">Semester 6</option>
+      </select>
+      <button id="forwardBtn">Forward</button>
+    </div>
+
+    <p id="status" class="status">Ready.</p>
+  </div>
+
+  <script>
+    const semesterMap = {
+      "1": "20231",
+      "2": "20232",
+      "3": "20241",
+      "4": "20242"
+      "5": "20251",
+      "6": "20252"
+    };
+
+    document.getElementById('forwardBtn').addEventListener('click', () => {
+      const nim = document.getElementById('nimInput').value.trim();
+      const sem = document.getElementById('semesterSelect').value;
+      const status = document.getElementById('status');
+
+      if (!nim) {
+        status.textContent = "Harap masukkan NIM.";
+        return;
+      }
+      if (!sem) {
+        status.textContent = "Harap pilih semester.";
+        return;
+      }
+
+      const kode = semesterMap[sem];
+      const url = `https://siakadnew.unigoro.ac.id/cetak/cetak_khs/${nim}/${kode}`;
+      status.textContent = "forwarded to: " + url;
+      window.location.href = url;
+    });
+  </script>
+</body>
+</html>
