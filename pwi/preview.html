@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<title>PWI Multi ID Generator</title>
+
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+
+	<style>
+		body{
+			background:#0f1115;
+			color:white;
+			min-height:100vh;
+		}
+
+		.card{
+			background:#1a1d24;
+			border:none;
+			border-radius:18px;
+		}
+
+		.form-control,
+		.form-select{
+			background:#0f1115;
+			border:1px solid #2b2f38;
+			color:white;
+		}
+
+		.form-control:focus,
+		.form-select:focus{
+			background:#0f1115;
+			color:white;
+			border-color:#6c63ff;
+			box-shadow:none;
+		}
+
+		.form-select option{
+			background:#0f1115;
+			color:white;
+		}
+
+		textarea{
+			min-height:250px;
+			font-family:monospace;
+			resize:none;
+		}
+
+		.btn-purple{
+			background:#6c63ff;
+			color:white;
+		}
+
+		.btn-purple:hover{
+			background:#5b54d6;
+			color:white;
+		}
+
+		.account-box{
+			background:#11141a;
+			padding:14px;
+			border-radius:14px;
+			margin-bottom:14px;
+			border:1px solid #2b2f38;
+		}
+	</style>
+</head>
+<body>
+
+<div class="container py-5">
+	<div class="row justify-content-center">
+		<div class="col-lg-9">
+
+			<div class="card p-4 shadow-lg">
+
+				<h2 class="fw-bold text-center mb-4">
+					PWI Multi ID Generator
+				</h2>
+
+				<div id="accountContainer"></div>
+
+				<div class="d-flex gap-2 mb-4">
+					<button class="btn btn-secondary w-100" onclick="addAccount()">
+						+ Add ID
+					</button>
+
+					<button class="btn btn-danger w-100" onclick="removeAccount()">
+						- Remove
+					</button>
+				</div>
+
+				<div class="mb-4">
+					<label class="form-label">
+						Server List
+					</label>
+
+					<select class="form-select" id="serverSelect"></select>
+				</div>
+
+				<div class="d-grid gap-2 mb-4">
+					<button class="btn btn-purple btn-lg" onclick="generateFile()">
+						Generate File
+					</button>
+				</div>
+
+				<div>
+					<label class="form-label">
+						Output
+					</label>
+
+					<textarea class="form-control" id="output"></textarea>
+				</div>
+
+				<div class="d-grid mt-3">
+					<button class="btn btn-success" onclick="downloadFile()">
+						Download TXT
+					</button>
+				</div>
+
+			</div>
+
+		</div>
+	</div>
+</div>
+
+<script>
+	const SERVER_LIST = {
+		"Starlight": "29000:game9.perfectworld.web.id,Starlight,0",
+		"Avalon": "29000:game9.perfectworld.web.id,Avalon,0",
+		"Elysium": "29000:game9.perfectworld.web.id,Elysium,0",
+		"Celestia": "29000:game9.perfectworld.web.id,Celestia,0"
+	}
+
+	const container = document.getElementById("accountContainer")
+	const serverSelect = document.getElementById("serverSelect")
+
+	for(const serverName in SERVER_LIST){
+		const option = document.createElement("option")
+
+		option.value = SERVER_LIST[serverName]
+		option.textContent = serverName
+
+		serverSelect.appendChild(option)
+	}
+
+	function utf16ToBase64(str){
+		let bytes = new Uint8Array(str.length * 2)
+
+		for(let i = 0; i < str.length; i++){
+			let code = str.charCodeAt(i)
+
+			bytes[i * 2] = code & 0xff
+			bytes[i * 2 + 1] = code >> 8
+		}
+
+		let binary = ""
+
+		bytes.forEach(b => {
+			binary += String.fromCharCode(b)
+		})
+
+		return btoa(binary)
+	}
+
+	function addAccount(username = ""){
+		const div = document.createElement("div")
+
+		div.className = "account-box"
+
+		div.innerHTML = `
+			<label class="form-label">
+				Username
+			</label>
+
+			<input
+				type="text"
+				class="form-control username"
+				placeholder="Masukkan username"
+				value="${username}"
+			>
+		`
+
+		container.appendChild(div)
+	}
+
+	function removeAccount(){
+		if(container.children.length > 1){
+			container.removeChild(container.lastElementChild)
+		}
+	}
+
+	function generateFile(){
+		const serverString = serverSelect.value
+
+		const encodedServer = utf16ToBase64(serverString)
+
+		let output = "true\n"
+
+		document.querySelectorAll(".username").forEach(input => {
+			const username = input.value.trim()
+
+			if(username){
+				const encodedUser = utf16ToBase64(username)
+
+				output += `${encodedUser} ${encodedServer}\n`
+			}
+		})
+
+		document.getElementById("output").value = output
+	}
+
+	function downloadFile(){
+		const text = document.getElementById("output").value
+
+		if(!text.trim()) return
+
+		const blob = new Blob([text], {
+			type:"text/plain"
+		})
+
+		const url = URL.createObjectURL(blob)
+
+		const a = document.createElement("a")
+
+		a.href = url
+		a.download = "accounts.txt"
+		a.click()
+
+		URL.revokeObjectURL(url)
+	}
+
+	addAccount("dimasvito101")
+	addAccount("dimasvito100")
+	addAccount("pwi1922")
+</script>
+
+</body>
+</html>
