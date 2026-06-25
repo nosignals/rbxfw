@@ -78,9 +78,9 @@
                         <div class="mb-3">
                             <label for="kegiatanInput" class="form-label fw-semibold mb-2">Activity</label>
                             <select class="form-select form-control-lg w-100" id="kegiatanInput" style="padding: .5rem 1rem;">
-                                <option value="Kontes">Kontes</option>
-                                <option value="WB">WB</option>
-                                <option value="Trial Guild">Trial</option>
+                                <option value="Kontes" data-tag="1519730615283482854">Kontes</option>
+                                <option value="WB" data-tag="1519730729641050253">WB</option>
+                                <option value="Trial Guild" data-tag="1519730474472439889">Trial</option>
                             </select>
                         </div>
 
@@ -148,7 +148,9 @@
         e.preventDefault();
 
         const webhookUrl = document.getElementById('webhookInput').value.trim();
-        const namaKegiatan = document.getElementById('kegiatanInput').value;
+        const kegiatanSelect = document.getElementById('kegiatanInput');
+        const namaKegiatan = kegiatanSelect.value;
+        const idTag = kegiatanSelect.options[kegiatanSelect.selectedIndex].getAttribute('data-tag');
         const tanggalMentah = document.getElementById('dateInput').value;
 
         localStorage.setItem('discord_webhook_url', webhookUrl);
@@ -157,7 +159,8 @@
 
         const payload = {
             "thread_name": `Absen ${namaKegiatan} ${tanggalDiformat}`,
-            "content": `Format Absensi : **[Nama]_[Nickname]** dan **Screenshoot** Saat ${namaKegiatan}\n ||@everyone||`
+            "content": `Format Absensi : **[Nama]_[Nickname]** dan **Screenshoot** Saat ${namaKegiatan}\n ||@everyone||`,
+            "applied_tags": [idTag]
         };
 
         fetch(webhookUrl, {
